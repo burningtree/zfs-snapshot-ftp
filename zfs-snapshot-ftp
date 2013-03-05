@@ -1,0 +1,71 @@
+#!/bin/sh
+
+CONFIG="zfs-snapshot-ftp.conf"
+
+if [ ! -e $CONFIG ]; then
+  echo "Please make config file. (zfs-snapshot-ftp.conf)"
+  exit
+fi
+. $CONFIG
+
+COMPRESSNAME="gz"
+COMPRESS="gzip"
+DECOMPRESS="gzip -d"
+CURL="curl -s -u $USERNAME:$PASSWORD"
+CURLV="curl -u $USERNAME:$PASSWORD"
+
+if [ -z $1 ]; then
+  echo "Usage: zfs-snapshot-ftp <command>"
+  echo "Available commands: backup, restore, list, zstreamdump"
+  exit
+fi
+
+case $1 in
+
+  backup)
+
+    DAY=`date "+%Y-%m-%d"`
+    SNAPSHOTS=`zfs list -t snapshot -o name | grep "@daily-$DAY"`
+
+    for snap in $SNAPSHOTS; do
+      DIR=`echo $snap | perl -wnE 'say /^([^@]+)/g'`
+      #if [ $DIR = "$ZFSROOT/corn/sites" ]; then
+        FN=`echo $snap | sed 's/\\//__/g'`
+        echo "Processing $snap .."
+        zfs send $snap | $COMPRESS | openssl enc -aes-256-cbc -salt -pass file:keyfile.pem | $CURLV $HOST/$FN.$COMPRESSNAME.ssl -T -
+      #fi
+    done
+    echo "Backup done."
+    ;;
+
+
+  restore)
+
+    if [ -z $2 ]; then
+      echo "Usage: zfs-wedos restore <snapshot> [filesystem]"
+      exit
+    fi
+
+    FS=`echo "$ZFSROOT/tmp_$2" | sed 's/@/--/g'`
+    MOUNTPOINT="/mnt/snapshot/$2"
+
+    $CURL $HOST/$2.$COMPRESSNAME.ssl | openssl aes-256-cbc -d -pass file:keyfile.pem | $DECOMPRESS | zfs receive $FS
+    zfs set mountpoint=$MOUNTPOINT $FS
+    echo "Restored and mounted in this location: $MOUNTPOINT"
+    ;;
+
+
+  list)
+
+    $CURL -l $HOST/ | sed 's/\.gz\.ssl//g'
+    ;;
+  
+
+  zstreamdump)
+
+    $CURL $HOST/$2.$COMPRESSNAME.ssl | openssl aes-256-cbc -d -pass file:keyfile.pem | $DECOMPRESS | zstreamdump
+    ;;
+ 
+
+esac
+
