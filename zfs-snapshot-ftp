@@ -42,7 +42,7 @@ case $1 in
   restore)
 
     if [ -z $2 ]; then
-      echo "Usage: zfs-wedos restore <snapshot> [filesystem]"
+      echo "Usage: zfs-snapshot-ftp restore <snapshot> [filesystem]"
       exit
     fi
 
