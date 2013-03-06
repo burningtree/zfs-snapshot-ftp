@@ -32,7 +32,7 @@ case $1 in
       #if [ $DIR = "$ZFSROOT/corn/sites" ]; then
         FN=`echo $snap | sed 's/\\//__/g'`
         echo "Processing $snap .."
-        zfs send $snap | $COMPRESS | openssl enc -aes-256-cbc -salt -pass file:keyfile.pem | $CURLV $HOST/$FN.$COMPRESSNAME.ssl -T -
+        zfs send $snap | $COMPRESS | openssl enc -aes-256-cbc -salt -pass file:$KEYFILE | $CURLV $HOST/$FN.$COMPRESSNAME.ssl -T -
       #fi
     done
     echo "Backup done."
@@ -49,7 +49,7 @@ case $1 in
     FS=`echo "$ZFSROOT/tmp_$2" | sed 's/@/--/g'`
     MOUNTPOINT="/mnt/snapshot/$2"
 
-    $CURL $HOST/$2.$COMPRESSNAME.ssl | openssl aes-256-cbc -d -pass file:keyfile.pem | $DECOMPRESS | zfs receive $FS
+    $CURL $HOST/$2.$COMPRESSNAME.ssl | openssl aes-256-cbc -d -pass file:$KEYFILE | $DECOMPRESS | zfs receive $FS
     zfs set mountpoint=$MOUNTPOINT $FS
     echo "Restored and mounted in this location: $MOUNTPOINT"
     ;;
@@ -57,13 +57,13 @@ case $1 in
 
   list)
 
-    $CURL -l $HOST/ | sed 's/\.gz\.ssl//g'
+    $CURL $HOST/ | awk '{ print $5, " ", $9 }' | sed 's/\.gz\.ssl//g' | sed 's/\\n//g'
     ;;
   
 
   zstreamdump)
 
-    $CURL $HOST/$2.$COMPRESSNAME.ssl | openssl aes-256-cbc -d -pass file:keyfile.pem | $DECOMPRESS | zstreamdump
+    $CURL $HOST/$2.$COMPRESSNAME.ssl | openssl aes-256-cbc -d -pass file:$KEYFILE | $DECOMPRESS | zstreamdump
     ;;
  
 
