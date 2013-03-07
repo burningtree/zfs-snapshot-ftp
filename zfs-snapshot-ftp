@@ -1,6 +1,7 @@
 #!/bin/sh
 
-CONFIG="zfs-snapshot-ftp.conf"
+CONFIGDIR=`dirname $0`
+CONFIG="$CONFIGDIR/zfs-snapshot-ftp.conf"
 
 if [ ! -e $CONFIG ]; then
   echo "Please make config file. (zfs-snapshot-ftp.conf)"
@@ -8,11 +9,20 @@ if [ ! -e $CONFIG ]; then
 fi
 . $CONFIG
 
+LOCKFILE="/var/run/zfs-backup-ftp.pid"
 COMPRESSNAME="gz"
 COMPRESS="gzip"
 DECOMPRESS="gzip -d"
 CURL="curl -s -u $USERNAME:$PASSWORD"
 CURLV="curl -u $USERNAME:$PASSWORD"
+
+if [ -f $LOCKFILE ]; then
+  PID=`cat $LOCKFILE`
+  echo "zfs-snapshot-ftp running (pid $PID)"
+  exit
+fi
+
+echo $$ > $LOCKFILE
 
 if [ -z $1 ]; then
   echo "Usage: zfs-snapshot-ftp <command>"
@@ -68,4 +78,6 @@ case $1 in
  
 
 esac
+
+rm $LOCKFILE
 
