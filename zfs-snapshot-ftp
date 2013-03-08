@@ -5,7 +5,7 @@ CONFIG="$CONFIGDIR/zfs-snapshot-ftp.conf"
 
 if [ ! -e $CONFIG ]; then
   echo "Please make config file. (zfs-snapshot-ftp.conf)"
-  exit
+  exit 1
 fi
 . $CONFIG
 
@@ -15,20 +15,30 @@ COMPRESS="gzip"
 DECOMPRESS="gzip -d"
 CURL="curl -s -u $USERNAME:$PASSWORD"
 CURLV="curl -u $USERNAME:$PASSWORD"
+USER=`whoami`
+
 
 if [ -f $LOCKFILE ]; then
   PID=`cat $LOCKFILE`
   echo "zfs-snapshot-ftp running (pid $PID)"
-  exit
+  exit 1
 fi
 
 echo $$ > $LOCKFILE
 
+if [ $USER != "root" ]; then
+  echo "Please run as root."
+  exit 1
+  rm $LOCKFILE
+fi
+
 if [ -z $1 ]; then
   echo "Usage: zfs-snapshot-ftp <command>"
   echo "Available commands: backup, restore, list, zstreamdump"
-  exit
+  exit 1
+  rm $LOCKFILE
 fi
+
 
 case $1 in
 
@@ -53,7 +63,8 @@ case $1 in
 
     if [ -z $2 ]; then
       echo "Usage: zfs-snapshot-ftp restore <snapshot> [filesystem]"
-      exit
+      exit 1
+      rm $LOCKFILE
     fi
 
     FS=`echo "$ZFSROOT/tmp_$2" | sed 's/@/--/g'`
