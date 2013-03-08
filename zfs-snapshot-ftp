@@ -35,8 +35,8 @@ fi
 if [ -z $1 ]; then
   echo "Usage: zfs-snapshot-ftp <command>"
   echo "Available commands: backup, restore, list, zstreamdump"
-  exit 1
   rm $LOCKFILE
+  exit 1
 fi
 
 
@@ -63,8 +63,8 @@ case $1 in
 
     if [ -z $2 ]; then
       echo "Usage: zfs-snapshot-ftp restore <snapshot> [filesystem]"
-      exit 1
       rm $LOCKFILE
+      exit 1
     fi
 
     FS=`echo "$ZFSROOT/tmp_$2" | sed 's/@/--/g'`
@@ -84,7 +84,7 @@ case $1 in
 
   zstreamdump)
 
-    $CURL $HOST/$2.$COMPRESSNAME.ssl | openssl aes-256-cbc -d -pass file:$KEYFILE | $DECOMPRESS | zstreamdump
+    $CURLV $HOST/$2.$COMPRESSNAME.ssl | openssl aes-256-cbc -d -pass file:$KEYFILE | $DECOMPRESS | zstreamdump
     ;;
  
 
